@@ -53,31 +53,62 @@ class Play extends Phaser.Scene {
             }),
             frameRate: 30
         });
+
+        //initialize score
+        this.p1Score = 0;
+
+        //display score
+        let scoreConfig = {
+            fontFamily: 'Courier',
+            fontSize: '28px',
+            backgroundColor: '#F3B141',
+            color: '#843605',
+            align: 'right',
+            padding: {
+                top: 5,
+                bottom: 5,
+            },
+            fixedWidth: 100
+        }
+        this.scoreLeft = this.add.text(borderUISize + borderPadding, borderUISize + borderPadding*2, this.p1Score, scoreConfig);
+
+        //60 sec playtime
+        scoreConfig.fixedWidth = 0;
+        this.clock = this.time.delayedCall(60000, () => {
+            this.add.text(game.config.width/2, game.config.height/2, 'GAME OVER', scoreConfig).setOrigin(0.5);
+        }, null, this);
     }
     update() {
+        //check for restart input
+        if (this.gameOver && Phaser.Input.Keyboard.JustDown(keyR)) {
+            this.scene.restart();
+        }
+
         this.starfield.tilePositionX -= starSpeed;
 
+        if(!this.gameOver) {
         //update Rocket
         this.p1Rocket.update();
         //ship update
         this.ship01.update();
         this.ship02.update();
         this.ship03.update();
+        }
 
         //check collisions
         if(this.checkCollision(this.p1Rocket, this.ship03)) {
             this.p1Rocket.reset();
-            this.ship03.reset()
+            this.shipExplode(this.ship03);
             //console.log('kaboom ship 03');
         }
         if(this.checkCollision(this.p1Rocket, this.ship02)) {
             this.p1Rocket.reset();
-            this.ship02.reset();
+            this.shipExplode(this.ship02);
             //console.log('kaboom ship 02');
         }
         if(this.checkCollision(this.p1Rocket, this.ship01)) {
             this.p1Rocket.reset();
-            this.ship01.reset();
+            this.shipExplode(this.ship01);
             //console.log('kaboom ship 01');
         }
     }
@@ -94,4 +125,22 @@ class Play extends Phaser.Scene {
             }
     }
     
+    shipExplode(ship){
+        //temporary hide ship
+        ship.alpha = 0;
+        //create explosion at ship position
+        let boom = this.add.sprite(ship.x, ship.y, 'explosion').setOrigin(0,0);
+        boom.anims.play('explode');
+        boom.on('animationcomplete', () => {
+            ship.reset();
+            ship.alpha = 1;
+            boom.destroy();
+        });
+        //score add and repaint
+        this.p1Score += ship.points;
+        this.scoreLeft.text = this.p1Score;
+
+        //load explosion sfx
+        this.sound.play('sfx_explosion');
+    }
 }
